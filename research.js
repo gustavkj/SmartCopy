@@ -20,6 +20,7 @@ function buildResearch() {
         var researchstring = "<div style='font-size: 115%;'><strong>" + _("Research_this_Person") + "</strong><div style='font-size: 85%; font-style: italic;'>" + focusname + "</div></div><div style='padding-top: 2px; padding-bottom: 5px;'>";
         if (exists(responsedata.first_name)) {
             researchstring += buildAncestry(responsedata);
+            researchstring += buildArkivDigital(responsedata);
             researchstring += buildBillionGraves(responsedata);
             researchstring += buildFamilySearch(responsedata);
             researchstring += buildFindAGrave(responsedata);
@@ -306,6 +307,51 @@ function buildRootsWeb(responsedata) {
     return researchstring;
 }
 
+function buildArkivDigital(responsedata) {
+    var query = 'https://app.arkivdigital.se/register-collections/register-posts?';
+    var queryParams = [['fuzzy=true']];
+
+    if (responsedata.first_name) {
+        queryParams.push('first_name=' + responsedata.first_name);
+    }
+
+    var last_name = '';
+
+    if (exists(responsedata.last_name)) {
+        last_name += responsedata.last_name;
+    }
+    if (exists(responsedata.maiden_name)) {
+        // Since either the last name or maiden name occur in different records, add an OR operator to search for both.
+        last_name += (last_name.length > 0 ? ' | ' : '') + responsedata.maiden_name;
+    }
+
+    if (last_name.length > 0) {
+        queryParams.push('last_name=' + last_name);
+    }
+
+
+    if (exists(responsedata.birth) && exists(responsedata.birth.date)) {
+        queryParams.push('birth_date=' + getISODate(responsedata.birth.date));
+    }
+
+    var arkivDigitalCollections = [
+        ['BiS (Population of Sweden) 1840-1947', 28],
+        ['Census of Sweden 1940', 16],
+        ['Census of Sweden 1950', 1],
+        ['Census of Sweden 1960', 4],
+        ['Census of Sweden 1975', 17],
+        ['Census of Sweden 1985', 19]
+    ];
+    
+    var researchstring = '<div style="text-align: left; padding-top: 4px; padding-left: 5px;"><strong>ArkivDigital</strong>';
+    arkivDigitalCollections.forEach(function ([name, id]) {
+        var url = query + queryParams.concat(['register_collection=' + id]).join('&');
+        researchstring += '<li style="padding-left: 5px;"><a class="ctrllink" url="' + url + '">' + name + ' (' + _("Records") + ')</a></li>';    
+    })
+    researchstring += '</div>';
+    return researchstring;
+}
+
 function locationString(location) {
     var locationset = [];
     if (exists(location.county)) {
@@ -318,6 +364,21 @@ function locationString(location) {
         locationset.push(location.country.replace(/ /g, "%20"));
     }
     return locationset.join("%2C%20");
+}
+
+function getISODate(date) {
+    var dateString = '' + date.year;
+
+    if (date.month) {
+        dateString += '-' + (date.month < 10 ? '0' : '') + date.month;
+
+        if (date.day) {
+            dateString += '-' + (date.day < 10 ? '0' : '') + date.day;
+
+        }
+    }
+
+    return dateString;
 }
 
 function wrapEncode(name) {
